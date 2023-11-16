@@ -19,7 +19,7 @@ US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buil
 EU (Frankfurt) |	eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?stackName=Illumio-Demo-Simulation&templateURL=https://cft-illumio-simulation.s3.amazonaws.com/GA-App-EU-Central-1.yaml)
 AP (Sydney) |	ap-southeast-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-2#/stacks/new?stackName=Illumio-Demo-Simulation&templateURL=https://cft-illumio-simulation.s3.amazonaws.com/GA-App-AP-Southeast-2.yaml)
 
-The AWS CloudFormation template (Illumio-Beta-Demo-Simulation.yaml) included in this project creates various AWS resources, including:
+The AWS CloudFormation template included in this project creates various AWS resources, including:
 
 - **Virtual Private Cloud(VPC)**
 - **Subnets**
