@@ -29,6 +29,9 @@ The AWS CloudFormation template included in this project creates various AWS res
 
 In our scenario, we have defined 3 subnets (prod, dev and staging) spread across 2 different VPC's. Within each subnet, we have created 3-tier applications using EC2 instances. This will be created using the provided Cloudformation template along with the flows. 
 
+<img width="1062" alt="image" src="https://github.com/adityakrishnan142/CloudSecure-Demo-Template/assets/56053567/b14d59c7-49b9-4b4e-8a3d-f3eab6556e95">
+
+
 **Note**: Please go through the demo script and video provided to you to get a detailed overview of demo'ing cloudsecure and its capabilities. 
 
 ## Cleaning Up
