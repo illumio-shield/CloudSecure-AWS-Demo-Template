@@ -1,0 +1,1668 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Illumio CS Free Trial"
+Resources:
+#-----ACME VPC and subnet creation-----
+  ACMEVPC1:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: "Name"
+          Value: "ACME-VPC1"
+
+  ProdSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: "10.0.1.0/24"
+      VpcId: !Ref ACMEVPC1
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Production Subnet"
+
+  DevSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}b"
+      CidrBlock: "10.0.3.0/24"
+      VpcId: !Ref ACMEVPC1
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Dev Subnet"
+
+#-----ACME VPC and subnet creation-----
+  ACMEVPC2:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: "Name"
+          Value: "ACME-VPC2"
+
+  StagingSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: "10.0.2.0/24"
+      VpcId: !Ref ACMEVPC2
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Staging Subnet"
+
+#------Internet gateway----------
+  ACMEIG:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: "Name"
+          Value: "InternetGateway"
+
+  ACMEIG2:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: "Name"
+          Value: "InternetGateway"
+
+  AttachIG:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref ACMEIG
+      VpcId: !Ref ACMEVPC1
+
+  AttachIG2:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref ACMEIG2
+      VpcId: !Ref ACMEVPC2
+
+
+#------NAT Gateway------------
+  ACMENG:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ACMENGEIP.AllocationId
+      SubnetId: !Ref ProdSubnet
+      Tags:
+      - Key: "Name"
+        Value: "NATGateway"
+
+  ACMENGEIP:
+    DependsOn: ACMEVPC1
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+#  ACMENG2:
+#    Type: AWS::EC2::NatGateway
+#    Properties:
+#      AllocationId: !GetAtt ACMENGEIP.AllocationId
+#      SubnetId: !Ref StagingSubnet
+#      Tags:
+#      - Key: "Name"
+#        Value: "NATGateway"
+
+#  ACMENGEIP2:
+#    DependsOn: ACMEVPC2
+#    Type: AWS::EC2::EIP
+#    Properties:
+#      Domain: vpc
+
+#-----Public Route--------
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ACMEVPC1
+      Tags:
+      - Key: "Name"
+        Value: "PublicRouteTable"
+
+  PublicRoute1:   # Public route table has direct routing to IGW:
+    Type: AWS::EC2::Route
+    DependsOn:
+         - AttachIG
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref ACMEIG 
+
+  PublicSubnetRouteAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref ProdSubnet
+
+  PublicRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ACMEVPC2
+      Tags:
+      - Key: "Name"
+        Value: "PublicRouteTable2"
+
+  PublicRoute2:   # Public route table has direct routing to IGW:
+    Type: AWS::EC2::Route
+    DependsOn:
+         - AttachIG2
+    Properties:
+      RouteTableId: !Ref PublicRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref ACMEIG2 
+
+  PublicSubnetRouteAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable2
+      SubnetId: !Ref StagingSubnet
+
+#---------Private Routes-----------
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ACMEVPC1
+      Tags:
+      - Key: "Name"
+        Value: "PrivateRouteTable"
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref ACMENG
+
+  PrivateAppSubnetRouteAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref DevSubnet
+
+#  PrivateAppSubnetRouteAssociation2:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties: 
+#      RouteTableId: !Ref PrivateRouteTable
+#      SubnetId: !Ref StagingSubnet
+
+#------------Apps within Prod Subnet----------------
+#------------CRM Prod App--------------------------------
+#------------CRMEC2Web------------------------------
+
+  CRMEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc" 
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2Proc2.PrivateIp} 5000 -t 10 >> /tmp/Proc2.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "CRM"
+      - Key: "Name"
+        Value: "CRM-Prod-Web1"
+
+  CRMEC2Web2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2Proc2.PrivateIp} 5000 -t 10 >> /tmp/Proc2.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2Web1.PrivateIp} 80 -t 10 >> /tmp/Web1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/FinProc2.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "CRM"
+      - Key: "Name"
+        Value: "CRM-Prod-Web2"
+
+#------------CRMEC2ProcTiers------------------
+  CRMEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "CRM"
+      - Key: "Name"
+        Value: "CRM-Prod-Proc1"
+
+  CRMEC2Proc2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "CRM"
+      - Key: "Name"
+        Value: "CRM-Prod-Proc2"
+
+
+#-------------CRM DB------------------
+
+  CRMEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "CRM"
+      - Key: "Name"
+        Value: "CRM-Prod-DB1"
+      - Key: "Risk"
+        Value: "High"
+
+#------------Finance App----------------------
+#------------Finance EC2Web------------------
+  FinanceEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "APP-ID"
+        Value: "Fin-001"
+      - Key: "Name"
+        Value: "Finance-Prod-Web1"
+
+  FinanceEC2Web2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "APP-ID"
+        Value: "Fin-001"
+      - Key: "Name"
+        Value: "Finance-Prod-Web2"
+
+#------------Finance EC2ProcTiers------------------
+  FinanceEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2DB2.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "APP-ID"
+        Value: "Fin-002"
+      - Key: "Name"
+        Value: "Finance-Prod-Proc1"
+
+#------------Finance EC2DBTiers------------------
+  FinanceEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "APP-ID"
+        Value: "Fin-002"
+      - Key: "Name"
+        Value: "Finance-Prod-DB1"
+      - Key: "Risk"
+        Value: "High"
+
+  FinanceEC2DB2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "APP-ID"
+        Value: "Fin-002"
+      - Key: "Name"
+        Value: "Finance-Prod-DB2"
+      - Key: "Risk"
+        Value: "High"
+
+#------------POS App----------------------
+#------------POS EC2Web------------------
+  POSEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-001-001"
+      - Key: "Name"
+        Value: "POS-Prod-Web1"
+      - Key: "Compliance"
+        Value: "PCI"
+
+#------------POS EC2ProcTiers------------------
+  POSEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-001-002"
+      - Key: "Name"
+        Value: "POS-Prod-Proc1"
+      - Key: "Compliance"
+        Value: "PCI"
+
+#------------- POS DB----------------
+
+  POSEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-001-003"
+      - Key: "Name"
+        Value: "POS-Prod-DB1"
+      - Key: "Compliance"
+        Value: "PCI"
+      - Key: "Risk"
+        Value: "High"
+
+#---------Prod Security groups----------
+
+  ProdWebSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Prod PublicWebSG "
+      GroupName: "ProdWebTierSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  ProdAppPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Prod AppPrivateSG "
+      GroupName: "ProdAppPrivateSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  ProdDBPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Prod DBPrivateSG "
+      GroupName: "ProdDBPrivateSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+#---------Apps within Dev Subnet-------------
+#------------POS Dev App----------------------
+#------------POS Dev EC2Web------------------
+  POSDevEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevPublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSDevEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet dropbox.com 443 -t 10 >> /tmp/dropbox.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-002-001"
+      - Key: "Name"
+        Value: "POS-Dev-Web1"
+      - Key: "Compliance"
+        Value: "PCI"
+
+#------------POS Dev EC2ProcTiers------------------
+  POSDevEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSDevEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-002-002"
+      - Key: "Name"
+        Value: "POS-Dev-Proc1"
+      - Key: "Compliance"
+        Value: "PCI"
+
+#------------- POS Dev Database----------------
+
+  POSDevEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "POS"
+      - Key: "Resource-ID"
+        Value: "POS-002-003"
+      - Key: "Name"
+        Value: "POS-Dev-DB1"
+      - Key: "Compliance"
+        Value: "PCI"
+
+#-------------HR App--------------
+#------------HR Dev app-----------
+
+  HRDevEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevPublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${HRDevEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet dropbox.com 443 -t 10 >> /tmp/dropbox.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "HR"
+      - Key: "App-ID"
+        Value: "HR-002-001"
+      - Key: "Name"
+        Value: "HR-Dev-Web1"
+
+#------------HR Dev EC2ProcTiers------------------
+  HRDevEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${HRDevEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "HR"
+      - Key: "App-ID"
+        Value: "HR-002-002"
+      - Key: "Name"
+        Value: "HR-Dev-Proc1"
+
+#------------- HR Dev Database----------------
+
+  HRDevEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "HR"
+      - Key: "App-ID"
+        Value: "HR-002-003"
+      - Key: "Name"
+        Value: "HR-Dev-DB1"
+
+#-------------Fin Dev App--------------
+#------------Fin Dev app-----------
+
+  FinDevEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevPublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinDevEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${POSEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-002-001"
+      - Key: "Name"
+        Value: "Fin-Dev-Web1"
+
+#------------Fin Dev EC2ProcTiers------------------
+  FinDevEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinDevEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-002-002"
+      - Key: "Name"
+        Value: "Fin-Dev-Proc1"
+
+#------------- Finance Dev Database----------------
+
+  FinDevEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref DevSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref DevDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Dev"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-002-002"
+      - Key: "Name"
+        Value: "Fin-Dev-Proc1"
+
+#--------- Dev Security groups----------
+
+  DevPublicWebSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "HR Dev PublicWebSG "
+      GroupName: "DevWebTierSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  DevAppPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Dev AppPrivateSG "
+      GroupName: "DevAppPrivateSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  DevDBPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Dev DBPrivateSG "
+      GroupName: "DevDBPrivateSG"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+#---------Apps within Staging Subnet-------------
+#------------CRM Staging App----------------------
+#------------CRM Staging EC2Web------------------
+
+  CRMStagingEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+
+      SecurityGroupIds: 
+        - !Ref StagingPublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMStagingEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet dropbox.com 443 -t 10 >> /tmp/dropbox.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "CRM"
+      - Key: "Resource-ID"
+        Value: "CRM-003-001"
+      - Key: "Name"
+        Value: "CRM-Staging-Web1"
+
+#------------CRM Staging EC2ProcTiers------------------
+  CRMStagingEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref StagingAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMStagingEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "CRM"
+      - Key: "Resource-ID"
+        Value: "CRM-003-002"
+      - Key: "Name"
+        Value: "CRM-Staging-Proc1"
+
+#------------- CRM Staging Database----------------
+
+  CRMStagingEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref StagingDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinanceEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "CRM"
+      - Key: "Resource-ID"
+        Value: "CRM-003-003"
+      - Key: "Name"
+        Value: "CRM-Staging-DB1"
+
+#-----------Fin Staging App----------------------
+#------------Fin Staging EC2Web------------------
+
+  FinStagingEC2Web1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref StagingPublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinStagingEC2Proc1.PrivateIp} 5000 -t 10 >> /tmp/Proc1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet dropbox.com 443 -t 10 >> /tmp/dropbox.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-003-001"
+      - Key: "Name"
+        Value: "Fin-Staging-Web1"
+
+#------------Fin Staging EC2ProcTiers------------------
+  FinStagingEC2Proc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref StagingAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 5000; done &
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${FinStagingEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${CRMEC2DB1.PrivateIp} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-003-002"
+      - Key: "Name"
+        Value: "Fin-Staging-Proc1"
+
+#------------- Fin Staging Database----------------
+
+  FinStagingEC2DB1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0669b163befffbdfc"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref StagingSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref StagingDBPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          while true; do nc -l -p 3306; done &
+      Tags:
+      - Key: "Env"
+        Value: "Staging"
+      - Key: "App"
+        Value: "Finance"
+      - Key: "Resource-ID"
+        Value: "Fin-003-003"
+      - Key: "Name"
+        Value: "Fin-Staging-DB1"
+
+#---------Staging Security groups----------
+
+  StagingPublicWebSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Staging PublicWebSG "
+      GroupName: "StagingWebTierSG"
+      VpcId: !Ref ACMEVPC2
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  StagingAppPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Staging AppPrivateSG "
+      GroupName: "StagingAppPrivateSG"
+      VpcId: !Ref ACMEVPC2
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
+  StagingDBPrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Staging DBPrivateSG "
+      GroupName: "StagingDBPrivateSG"
+      VpcId: !Ref ACMEVPC2
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+
