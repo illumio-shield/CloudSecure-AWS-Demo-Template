@@ -239,6 +239,8 @@ Resources:
         Value: "CRM"
       - Key: "Name"
         Value: "CRM-Prod-Web1"
+      - Key: "Role"
+        Value: "Web"
 
   CRMEC2Web2:
     Type: "AWS::EC2::Instance"
@@ -285,6 +287,8 @@ Resources:
         Value: "CRM"
       - Key: "Name"
         Value: "CRM-Prod-Web2"
+      - Key: "Role"
+        Value: "Web"
 
 #------------CRMEC2ProcTiers------------------
   CRMEC2Proc1:
@@ -330,6 +334,8 @@ Resources:
         Value: "CRM"
       - Key: "Name"
         Value: "CRM-Prod-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
   CRMEC2Proc2:
     Type: "AWS::EC2::Instance"
@@ -369,6 +375,8 @@ Resources:
         Value: "CRM"
       - Key: "Name"
         Value: "CRM-Prod-Proc2"
+      - Key: "Role"
+        Value: "Proc"
 
 
 #-------------CRM DB------------------
@@ -412,6 +420,8 @@ Resources:
         Value: "CRM-Prod-DB1"
       - Key: "Risk"
         Value: "High"
+      - Key: "Role"
+        Value: "DB"
 
 #------------Finance App----------------------
 #------------Finance EC2Web------------------
@@ -459,6 +469,8 @@ Resources:
         Value: "Fin-001"
       - Key: "Name"
         Value: "Finance-Prod-Web1"
+      - Key: "Role"
+        Value: "Web"
 
   FinanceEC2Web2:
     Type: "AWS::EC2::Instance"
@@ -504,6 +516,8 @@ Resources:
         Value: "Fin-001"
       - Key: "Name"
         Value: "Finance-Prod-Web2"
+      - Key: "Role"
+        Value: "Web"
 
 #------------Finance EC2ProcTiers------------------
   FinanceEC2Proc1:
@@ -552,6 +566,8 @@ Resources:
         Value: "Fin-002"
       - Key: "Name"
         Value: "Finance-Prod-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------Finance EC2DBTiers------------------
   FinanceEC2DB1:
@@ -600,6 +616,8 @@ Resources:
         Value: "Finance-Prod-DB1"
       - Key: "Risk"
         Value: "High"
+      - Key: "Role"
+        Value: "DB"
 
   FinanceEC2DB2:
     Type: "AWS::EC2::Instance"
@@ -648,6 +666,8 @@ Resources:
         Value: "Finance-Prod-DB2"
       - Key: "Risk"
         Value: "High"
+      - Key: "Role"
+        Value: "DB"
 
 #------------POS App----------------------
 #------------POS EC2Web------------------
@@ -697,6 +717,8 @@ Resources:
         Value: "POS-Prod-Web1"
       - Key: "Compliance"
         Value: "PCI"
+      - Key: "Role"
+        Value: "Web"
 
 #------------POS EC2ProcTiers------------------
   POSEC2Proc1:
@@ -746,6 +768,8 @@ Resources:
         Value: "POS-Prod-Proc1"
       - Key: "Compliance"
         Value: "PCI"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- POS DB----------------
 
@@ -797,6 +821,8 @@ Resources:
         Value: "PCI"
       - Key: "Risk"
         Value: "High"
+      - Key: "Role"
+        Value: "DB"
 
 #---------Prod Security groups----------
 
@@ -896,6 +922,8 @@ Resources:
         Value: "POS-Dev-Web1"
       - Key: "Compliance"
         Value: "PCI"
+      - Key: "Role"
+        Value: "Web"
 
 #------------POS Dev EC2ProcTiers------------------
   POSDevEC2Proc1:
@@ -945,6 +973,8 @@ Resources:
         Value: "POS-Dev-Proc1"
       - Key: "Compliance"
         Value: "PCI"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- POS Dev Database----------------
 
@@ -994,6 +1024,8 @@ Resources:
         Value: "POS-Dev-DB1"
       - Key: "Compliance"
         Value: "PCI"
+      - Key: "Role"
+        Value: "DB"
 
 #-------------HR App--------------
 #------------HR Dev app-----------
@@ -1044,6 +1076,8 @@ Resources:
         Value: "HR-002-001"
       - Key: "Name"
         Value: "HR-Dev-Web1"
+      - Key: "Role"
+        Value: "Web"
 
 #------------HR Dev EC2ProcTiers------------------
   HRDevEC2Proc1:
@@ -1091,6 +1125,8 @@ Resources:
         Value: "HR-002-002"
       - Key: "Name"
         Value: "HR-Dev-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- HR Dev Database----------------
 
@@ -1138,6 +1174,8 @@ Resources:
         Value: "HR-002-003"
       - Key: "Name"
         Value: "HR-Dev-DB1"
+      - Key: "Role"
+        Value: "DB"
 
 #-------------Fin Dev App--------------
 #------------Fin Dev app-----------
@@ -1187,6 +1225,8 @@ Resources:
         Value: "Fin-002-001"
       - Key: "Name"
         Value: "Fin-Dev-Web1"
+      - Key: "Role"
+        Value: "Web"
 
 #------------Fin Dev EC2ProcTiers------------------
   FinDevEC2Proc1:
@@ -1234,6 +1274,8 @@ Resources:
         Value: "Fin-002-002"
       - Key: "Name"
         Value: "Fin-Dev-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- Finance Dev Database----------------
 
@@ -1281,6 +1323,8 @@ Resources:
         Value: "Fin-002-002"
       - Key: "Name"
         Value: "Fin-Dev-Proc1"
+      - Key: "Role"
+        Value: "DB"
 
 #--------- Dev Security groups----------
 
@@ -1379,6 +1423,8 @@ Resources:
         Value: "CRM-003-001"
       - Key: "Name"
         Value: "CRM-Staging-Web1"
+      - Key: "Role"
+        Value: "Web"
 
 #------------CRM Staging EC2ProcTiers------------------
   CRMStagingEC2Proc1:
@@ -1426,6 +1472,8 @@ Resources:
         Value: "CRM-003-002"
       - Key: "Name"
         Value: "CRM-Staging-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- CRM Staging Database----------------
 
@@ -1474,6 +1522,8 @@ Resources:
         Value: "CRM-003-003"
       - Key: "Name"
         Value: "CRM-Staging-DB1"
+      - Key: "Role"
+        Value: "DB"
 
 #-----------Fin Staging App----------------------
 #------------Fin Staging EC2Web------------------
@@ -1523,6 +1573,8 @@ Resources:
         Value: "Fin-003-001"
       - Key: "Name"
         Value: "Fin-Staging-Web1"
+      - Key: "Role"
+        Value: "Web"
 
 #------------Fin Staging EC2ProcTiers------------------
   FinStagingEC2Proc1:
@@ -1571,6 +1623,8 @@ Resources:
         Value: "Fin-003-002"
       - Key: "Name"
         Value: "Fin-Staging-Proc1"
+      - Key: "Role"
+        Value: "Proc"
 
 #------------- Fin Staging Database----------------
 
@@ -1618,6 +1672,8 @@ Resources:
         Value: "Fin-003-003"
       - Key: "Name"
         Value: "Fin-Staging-DB1"
+      - Key: "Role"
+        Value: "DB"
 
 #---------Staging Security groups----------
 
