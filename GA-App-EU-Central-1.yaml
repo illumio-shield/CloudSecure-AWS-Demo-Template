@@ -1322,7 +1322,7 @@ Resources:
       - Key: "Resource-ID"
         Value: "Fin-002-002"
       - Key: "Name"
-        Value: "Fin-Dev-Proc1"
+        Value: "Fin-Dev-DB1"
       - Key: "Role"
         Value: "DB"
 
