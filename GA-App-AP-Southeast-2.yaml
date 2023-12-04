@@ -1,6 +1,54 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Illumio CS Free Trial"
 Resources:
+  FlowLogsBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: 'cloudsecure-trial-template-flow-logs'
+
+  FlowLogsRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'vpc-flow-logs.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'FlowLogsPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetBucketAcl'
+                Resource: 
+                  - !GetAtt FlowLogsBucket.Arn
+                  - !Sub '${FlowLogsBucket.Arn}/*'
+  
+  ACMEVPC1FlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogsRole.Arn
+      LogDestination: !GetAtt FlowLogsBucket.Arn
+      LogDestinationType: 's3'
+      ResourceId: !Ref ACMEVPC1
+      ResourceType: 'VPC'
+      TrafficType: 'ALL'
+  
+  ACMEVPC2FlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogsRole.Arn
+      LogDestination: !GetAtt FlowLogsBucket.Arn
+      LogDestinationType: 's3'
+      ResourceId: !Ref ACMEVPC2
+      ResourceType: 'VPC'
+      TrafficType: 'ALL'
 #-----ACME VPC and subnet creation-----
   ACMEVPC1:
     Type: AWS::EC2::VPC
@@ -240,7 +288,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Prod-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
   CRMEC2Web2:
     Type: "AWS::EC2::Instance"
@@ -288,7 +336,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Prod-Web2"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------CRMEC2ProcTiers------------------
   CRMEC2Proc1:
@@ -335,7 +383,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Prod-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
   CRMEC2Proc2:
     Type: "AWS::EC2::Instance"
@@ -376,7 +424,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Prod-Proc2"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 
 #-------------CRM DB------------------
@@ -421,7 +469,7 @@ Resources:
       - Key: "Risk"
         Value: "High"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #------------Finance App----------------------
 #------------Finance EC2Web------------------
@@ -470,7 +518,7 @@ Resources:
       - Key: "Name"
         Value: "Finance-Prod-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
   FinanceEC2Web2:
     Type: "AWS::EC2::Instance"
@@ -517,7 +565,7 @@ Resources:
       - Key: "Name"
         Value: "Finance-Prod-Web2"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------Finance EC2ProcTiers------------------
   FinanceEC2Proc1:
@@ -567,7 +615,7 @@ Resources:
       - Key: "Name"
         Value: "Finance-Prod-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------Finance EC2DBTiers------------------
   FinanceEC2DB1:
@@ -617,7 +665,7 @@ Resources:
       - Key: "Risk"
         Value: "High"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
   FinanceEC2DB2:
     Type: "AWS::EC2::Instance"
@@ -667,7 +715,7 @@ Resources:
       - Key: "Risk"
         Value: "High"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #------------POS App----------------------
 #------------POS EC2Web------------------
@@ -718,7 +766,7 @@ Resources:
       - Key: "Compliance"
         Value: "PCI"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------POS EC2ProcTiers------------------
   POSEC2Proc1:
@@ -769,7 +817,7 @@ Resources:
       - Key: "Compliance"
         Value: "PCI"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- POS DB----------------
 
@@ -822,7 +870,7 @@ Resources:
       - Key: "Risk"
         Value: "High"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #---------Prod Security groups----------
 
@@ -923,7 +971,7 @@ Resources:
       - Key: "Compliance"
         Value: "PCI"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------POS Dev EC2ProcTiers------------------
   POSDevEC2Proc1:
@@ -974,7 +1022,7 @@ Resources:
       - Key: "Compliance"
         Value: "PCI"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- POS Dev Database----------------
 
@@ -1025,7 +1073,7 @@ Resources:
       - Key: "Compliance"
         Value: "PCI"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #-------------HR App--------------
 #------------HR Dev app-----------
@@ -1077,7 +1125,7 @@ Resources:
       - Key: "Name"
         Value: "HR-Dev-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------HR Dev EC2ProcTiers------------------
   HRDevEC2Proc1:
@@ -1126,7 +1174,7 @@ Resources:
       - Key: "Name"
         Value: "HR-Dev-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- HR Dev Database----------------
 
@@ -1175,7 +1223,7 @@ Resources:
       - Key: "Name"
         Value: "HR-Dev-DB1"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #-------------Fin Dev App--------------
 #------------Fin Dev app-----------
@@ -1226,7 +1274,7 @@ Resources:
       - Key: "Name"
         Value: "Fin-Dev-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------Fin Dev EC2ProcTiers------------------
   FinDevEC2Proc1:
@@ -1275,7 +1323,7 @@ Resources:
       - Key: "Name"
         Value: "Fin-Dev-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- Finance Dev Database----------------
 
@@ -1322,9 +1370,9 @@ Resources:
       - Key: "Resource-ID"
         Value: "Fin-002-002"
       - Key: "Name"
-        Value: "Fin-Dev-DB1"
+        Value: "Fin-Dev-Proc1"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #--------- Dev Security groups----------
 
@@ -1424,7 +1472,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Staging-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------CRM Staging EC2ProcTiers------------------
   CRMStagingEC2Proc1:
@@ -1473,7 +1521,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Staging-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- CRM Staging Database----------------
 
@@ -1523,7 +1571,7 @@ Resources:
       - Key: "Name"
         Value: "CRM-Staging-DB1"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #-----------Fin Staging App----------------------
 #------------Fin Staging EC2Web------------------
@@ -1574,7 +1622,7 @@ Resources:
       - Key: "Name"
         Value: "Fin-Staging-Web1"
       - Key: "Role"
-        Value: "web"
+        Value: "Web"
 
 #------------Fin Staging EC2ProcTiers------------------
   FinStagingEC2Proc1:
@@ -1624,7 +1672,7 @@ Resources:
       - Key: "Name"
         Value: "Fin-Staging-Proc1"
       - Key: "Role"
-        Value: "proc"
+        Value: "Proc"
 
 #------------- Fin Staging Database----------------
 
@@ -1673,7 +1721,7 @@ Resources:
       - Key: "Name"
         Value: "Fin-Staging-DB1"
       - Key: "Role"
-        Value: "db"
+        Value: "DB"
 
 #---------Staging Security groups----------
 
@@ -1721,3 +1769,4 @@ Resources:
         - 
           CidrIp: "0.0.0.0/0"
           IpProtocol: "-1"
+
