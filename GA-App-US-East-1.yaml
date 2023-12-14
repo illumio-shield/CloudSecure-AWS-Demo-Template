@@ -832,14 +832,14 @@ Resources:
       GroupDescription: "Prod PublicWebSG "
       GroupName: "ProdWebTierSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   ProdAppPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -847,14 +847,14 @@ Resources:
       GroupDescription: "Prod AppPrivateSG "
       GroupName: "ProdAppPrivateSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   ProdDBPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -862,14 +862,14 @@ Resources:
       GroupDescription: "Prod DBPrivateSG "
       GroupName: "ProdDBPrivateSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
 #---------Apps within Dev Subnet-------------
 #------------POS Dev App----------------------
@@ -1334,14 +1334,14 @@ Resources:
       GroupDescription: "HR Dev PublicWebSG "
       GroupName: "DevWebTierSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   DevAppPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -1349,14 +1349,14 @@ Resources:
       GroupDescription: "Dev AppPrivateSG "
       GroupName: "DevAppPrivateSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   DevDBPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -1364,14 +1364,14 @@ Resources:
       GroupDescription: "Dev DBPrivateSG "
       GroupName: "DevDBPrivateSG"
       VpcId: !Ref ACMEVPC1
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
 #---------Apps within Staging Subnet-------------
 #------------CRM Staging App----------------------
@@ -1683,14 +1683,14 @@ Resources:
       GroupDescription: "Staging PublicWebSG "
       GroupName: "StagingWebTierSG"
       VpcId: !Ref ACMEVPC2
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   StagingAppPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -1698,14 +1698,14 @@ Resources:
       GroupDescription: "Staging AppPrivateSG "
       GroupName: "StagingAppPrivateSG"
       VpcId: !Ref ACMEVPC2
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
 
   StagingDBPrivateSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -1713,11 +1713,11 @@ Resources:
       GroupDescription: "Staging DBPrivateSG "
       GroupName: "StagingDBPrivateSG"
       VpcId: !Ref ACMEVPC2
-      SecurityGroupIngress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          IpProtocol: "-1"
+#      SecurityGroupIngress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
+#      SecurityGroupEgress: 
+#        - 
+#          CidrIp: "0.0.0.0/0"
+#          IpProtocol: "-1"
