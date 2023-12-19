@@ -26,6 +26,9 @@ The AWS CloudFormation template included in this project creates various AWS res
 - **Internet Gateway**
 - **NAT Gateway**
 - **EC2 Instances**
+- **S3 Bucket**
+
+Additionally, it will automatically create flow logs from the VPC's to the S3 bucket. 
 
 In our scenario, we have defined 3 subnets (prod, dev and staging) spread across 2 different VPC's. Within each subnet, we have created 3-tier applications using EC2 instances. This will be created using the provided Cloudformation template along with the flows. 
 
