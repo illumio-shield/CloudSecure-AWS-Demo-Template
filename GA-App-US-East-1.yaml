@@ -58,6 +58,38 @@ Resources:
         - Key: "Name"
           Value: "Staging Subnet"
 
+#-------S3 Bucket and Flow Logs-------
+
+  S3bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub "${AWS::Region}-${AWS::AccountId}"
+
+  Flowlogs1: 
+    Type: AWS::EC2::FlowLog
+    Properties:
+      ResourceId: !Ref ACMEVPC1
+      ResourceType: VPC
+      LogDestination: !GetAtt S3bucket.Arn
+      LogDestinationType: s3
+      TrafficType: ALL
+      Tags:
+        - Key: "Name"
+          Value: "Flow-logs1"
+
+  Flowlogs2: 
+    Type: AWS::EC2::FlowLog
+    Properties:
+      ResourceId: !Ref ACMEVPC2
+      ResourceType: VPC
+      LogDestination: !GetAtt S3bucket.Arn
+      LogDestinationType: s3
+      TrafficType: ALL
+      Tags:
+        - Key: "Name"
+          Value: "Flow-logs2"
+
+
 #------Internet gateway----------
   ACMEIG:
     Type: AWS::EC2::InternetGateway
