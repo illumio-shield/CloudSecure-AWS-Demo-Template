@@ -39,7 +39,7 @@ Resources:
   ACMEVPC2:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: "10.0.0.0/16"
+      CidrBlock: "10.1.0.0/16"
       EnableDnsHostnames: true
       EnableDnsSupport: true
       InstanceTenancy: "default"
@@ -51,12 +51,20 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Sub "${AWS::Region}a"
-      CidrBlock: "10.0.2.0/24"
+      CidrBlock: "10.1.2.0/24"
       VpcId: !Ref ACMEVPC2
       MapPublicIpOnLaunch: true
       Tags:
         - Key: "Name"
           Value: "Staging Subnet"
+
+#--------VPC peering------------------
+
+  vpcPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId: !Ref ACMEVPC1
+      PeerVpcId: !Ref ACMEVPC2
 
 #-------S3 Bucket and Flow Logs-------
 
@@ -224,7 +232,241 @@ Resources:
 #      RouteTableId: !Ref PrivateRouteTable
 #      SubnetId: !Ref StagingSubnet
 
+#----------VPC Endpoint-------------------
+
+  EC2DynamoDBVPCEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: "Gateway"
+      VpcId: !Ref ACMEVPC1
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      PolicyDocument: "{\"Version\":\"2008-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"*\",\"Resource\":\"*\"}]}"
+      RouteTableIds: 
+        - !Ref PublicRouteTable
+        - !Ref PrivateRouteTable
+      PrivateDnsEnabled: false
+
+  PrivateAPIGatewayEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: "Interface"
+      VpcId: !Ref ACMEVPC1
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+      PolicyDocument: |
+        {
+          "Statement": [
+            {
+              "Action": "*", 
+              "Effect": "Allow", 
+              "Principal": "*", 
+              "Resource": "*"
+            }
+          ]
+        }
+      SubnetIds: 
+        - !Ref DevSubnet
+      PrivateDnsEnabled: true
+      SecurityGroupIds: 
+        - !Ref PublicWebSG
+
 #------------Apps within Prod Subnet----------------
+#------------Ecomm web app------------------
+  ECommWeb1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-01c647eace872fc02"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      IamInstanceProfile: !Ref EC2DynamoDBInstanceProfile
+      SecurityGroupIds: 
+        - !Ref PublicWebSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "Ecomm"
+      - Key: "Name"
+        Value: "Ecomm-Prod-Web1"
+      - Key: "Role"
+        Value: "Web"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          sudo yum install python3-pip -y
+          sudo pip3 install boto3
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Complex/createtable.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/Add_multiple_items.py -P /home/ec2-user
+          wget https://raw.githubusercontent.com/HerbyJ3/python_projects/main/Week14/dynamoscan.py -P /home/ec2-user
+          python3 /home/ec2-user/createtable.py
+          sleep 30
+          python3 /home/ec2-user/Add_multiple_items.py
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${ECommProc1.PrivateIp} 80 -t 10 >> /tmp/Web1.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${ECommProc2.PrivateIp} 80 -t 10 >> /tmp/Web2.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "*/5 * * * *  python3 /home/ec2-user/dynamoscan.py >> /tmp/dynamoscan.log") | crontab -
+          (crontab -l 2>/dev/null || echo ""; echo "*/30 * * * *  python3 /home/ec2-user/Add_multiple_items.py >> /tmp/add_items.log") | crontab -
+          aws apigateway update-rest-api --rest-api-id ${querytableAPIGateway.RestApiId} --patch-operations op=replace,path=/policy,value='"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Effect\\\":\\\"Allow\\\",\\\"Principal\\\":\\\"*\\\",\\\"Action\\\":\\\"execute-api:Invoke\\\",\\\"Resource\\\":\\\"arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${querytableAPIGateway.RestApiId}\\/*\\\"},{\\\"Effect\\\":\\\"Deny\\\",\\\"Principal\\\":\\\"*\\\",\\\"Action\\\":\\\"execute-api:Invoke\\\",\\\"Resource\\\":\\\"arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${querytableAPIGateway.RestApiId}\\/*\\\",\\\"Condition\\\":{\\\"StringNotEquals\\\":{\\\"aws:SourceVpce\\\":\\\"${PrivateAPIGatewayEndpoint.Id}\\\"}}}]}"' >> /tmp/updatresourcepolicy.log
+          sleep 30
+          aws apigateway create-deployment --rest-api-id ${querytableAPIGateway.RestApiId} --region ${AWS::Region} --stage-name query >> /tmp/deployment.log
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  curl https://${querytableAPIGateway.RestApiId}.execute-api.${AWS::Region}.amazonaws.com/query >> /tmp/queryAPI.log") | crontab -
+    DependsOn:     
+      - querytableApiGatewayDeployment
+
+#------------Ecomm proc tier ------------------
+  ECommProc1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-01c647eace872fc02"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo yum install python3-pip -y
+          pip3 install boto3
+          pip install amazon-dax-client
+          wget http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/samples/TryDax.zip
+          unzip TryDax.zip
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${EcommRDS.Endpoint.Address} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "Ecomm"
+      - Key: "Name"
+        Value: "Ecomm-Prod-Proc1"
+      - Key: "Role"
+        Value: "Proc"
+
+  ECommProc2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-01c647eace872fc02"
+      InstanceType: "t2.micro"
+#      KeyName: "freetrial"
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      Tenancy: "default"
+      SubnetId: !Ref ProdSubnet
+      EbsOptimized: false
+      SecurityGroupIds: 
+        - !Ref ProdAppPrivateSG
+      SourceDestCheck: true
+      HibernationOptions: 
+        Configured: false
+      EnclaveOptions: 
+        Enabled: false
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemct enable httpd
+          sudo yum install telnet -y
+          sudo yum install cronie -y
+          sudo yum install nc -y
+          sudo systemctl enable crond.service
+          sudo systemctl start crond.service
+          (crontab -l 2>/dev/null || echo ""; echo "* * * * *  telnet ${EcommRDS.Endpoint.Address} 3306 -t 10 >> /tmp/DB.log") | crontab -
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "Ecomm"
+      - Key: "Name"
+        Value: "Ecomm-Prod-Proc2"
+      - Key: "Role"
+        Value: "Proc"
+
+#-------------Ecomm-RDS----------------
+
+  EcommRDS:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: "Ecomm-RDS"
+      AllocatedStorage: 20
+      DBInstanceClass: "db.t2.micro"
+      Engine: "mysql"
+      MasterUsername: "admin"
+      MasterUserPassword: "Illumio123"
+      BackupRetentionPeriod: 1
+      AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
+      MultiAZ: false
+      EngineVersion: "8.0.34"
+      AutoMinorVersionUpgrade: true
+      LicenseModel: "general-public-license"
+      PubliclyAccessible: false
+      StorageType: "gp2"
+      Port: 3306
+      StorageEncrypted: false
+      CopyTagsToSnapshot: true
+      MonitoringInterval: 0
+      EnableIAMDatabaseAuthentication: false
+      EnablePerformanceInsights: false
+      DeletionProtection: false
+      DBSubnetGroupName: !Sub "default-${ACMEVPC1}"
+      VPCSecurityGroups: 
+        - !Ref ProdDBPrivateSG
+      MaxAllocatedStorage: 1000
+      DBParameterGroupName: "default.mysql8.0"
+      OptionGroupName: "default:mysql-8-0"
+      CACertificateIdentifier: "rds-ca-2019"
+      Tags:
+      - Key: "Env"
+        Value: "Prod"
+      - Key: "Asset"
+        Value: "Ecomm"
+      - Key: "Name"
+        Value: "Ecomm-Prod-DB"
+      - Key: "Role"
+        Value: "DB"
+
+  RDSDBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "Created from the RDS Management Console"
+      DBSubnetGroupName: !Sub "default-${ACMEVPC1}"
+      SubnetIds: 
+        - !Ref ProdSubnet
+        - !Ref DevSubnet
+
 #------------CRM Prod App--------------------------------
 #------------CRMEC2Web------------------------------
 
@@ -902,6 +1144,20 @@ Resources:
 #        - 
 #          CidrIp: "0.0.0.0/0"
 #          IpProtocol: "-1"
+
+  PublicWebSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "PublicWebSG for EC2Client"
+      VpcId: !Ref ACMEVPC1
+      SecurityGroupIngress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      SecurityGroupEgress: 
+        - 
+          CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
 
 #---------Apps within Dev Subnet-------------
 #------------POS Dev App----------------------
@@ -1753,3 +2009,305 @@ Resources:
 #        - 
 #          CidrIp: "0.0.0.0/0"
 #          IpProtocol: "-1"
+
+#-----------IAM Roles for EC2, Dynamo DB and Lambda--------------
+
+  EC2DynamoDBRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      RoleName: "EC2DynamoDB"
+      AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator"
+      Description: "Allows EC2 instances to call AWS services on your behalf."
+
+  EC2DynamoDBInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      InstanceProfileName: !Ref EC2DynamoDBRole
+      Roles: 
+        - !Ref EC2DynamoDBRole
+
+  LambdaDynamoDBRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      RoleName: "LambdaDynamoDB"
+      AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        - "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+      Description: "Allows Lambda functions to call AWS services on your behalf."
+
+#--------Lambda Functions------------------
+
+  returnanitemlambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "return_an_item"
+      Handler: "index.lambda_handler"
+      Architectures: 
+        - "x86_64"
+      MemorySize: 128
+      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Runtime: "python3.11"
+      Timeout: 3
+      TracingConfig: 
+        Mode: "PassThrough"
+      VpcConfig: 
+        SubnetIds: 
+          - !Ref ProdSubnet
+        SecurityGroupIds: 
+          - !Ref ProdAppPrivateSG
+      EphemeralStorage: 
+        Size: 512
+      Code: 
+        ZipFile: !Sub |
+          import boto3
+          def lambda_handler(event, context):
+            dynamodb = boto3.resource('dynamodb', region_name="${AWS::Region}")
+            table = dynamodb.Table('My_Favorite_Movies')
+            response = table.get_item(
+              Key={
+                'year': '2005',
+                'title': 'Constantine'
+              }
+              )
+            item = response['Item']
+            return item
+
+  deleteanitemlambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "delete_an_item"
+      Handler: "index.lambda_handler"
+      Architectures: 
+        - "x86_64"
+      MemorySize: 128
+      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Runtime: "python3.11"
+      Timeout: 3
+      TracingConfig: 
+        Mode: "PassThrough"
+      VpcConfig: 
+        SubnetIds: 
+          - !Ref ProdSubnet
+        SecurityGroupIds: 
+          - !Ref ProdAppPrivateSG
+      EphemeralStorage: 
+        Size: 512
+      Code: 
+        ZipFile: !Sub |
+          import boto3
+          def lambda_handler(event, context):
+            dynamodb = boto3.resource('dynamodb', region_name="${AWS::Region}")
+            table = dynamodb.Table('My_Favorite_Movies')
+            remove = table.delete_item(
+              Key={
+                'year': '1999',
+                'title': 'The Matrix'
+              }
+            ) 
+            return remove       
+
+  queryatablelambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "query_a_table"
+      Handler: "index.lambda_handler"
+      Architectures: 
+        - "x86_64"
+      MemorySize: 128
+      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Runtime: "python3.11"
+      Timeout: 3
+      TracingConfig: 
+        Mode: "PassThrough"
+      VpcConfig: 
+        SubnetIds: 
+          - !Ref ProdSubnet
+        SecurityGroupIds: 
+          - !Ref ProdAppPrivateSG
+      EphemeralStorage: 
+        Size: 512
+      Code: 
+        ZipFile: !Sub |
+          import boto3
+          from boto3.dynamodb.conditions import Key, Attr
+          def lambda_handler(event, context):
+            dynamodb = boto3.resource('dynamodb', region_name="${AWS::Region}")
+            table = dynamodb.Table('My_Favorite_Movies')
+            response = table.query(
+            KeyConditionExpression=Key('year').eq('1997')
+            )
+            items = response['Items']
+            return items
+
+#------------Lambda Permissions---------------------
+#------Permissions for API gateway to invoke lambda---------
+
+#  queryatablelambdapermission:
+#    Type: "AWS::Lambda::Permission"
+#    Properties:
+#      Action: "lambda:InvokeFunction"
+#      FunctionName: !GetAtt queryatablelambda.Arn
+#      Principal: "apigateway.amazonaws.com"
+#      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${querytableAPIGateway}/*/GET/"
+
+#  returnatablelambdapermission:
+#    Type: "AWS::Lambda::Permission"
+#    Properties:
+#      Action: "lambda:InvokeFunction"
+#      FunctionName: !GetAtt returnanitemlambda.Arn
+#      Principal: "apigateway.amazonaws.com"
+#      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${querytableAPIGateway}/*/GET/return"
+
+  returnatablelambdapermission:
+    Type: "AWS::Lambda::Permission"
+    DependsOn: querytableAPIGateway
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref returnanitemlambda
+      Principal: apigateway.amazonaws.com
+
+  deletetablelambdapermission:
+    Type: "AWS::Lambda::Permission"
+    DependsOn: querytableAPIGateway
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref deleteanitemlambda
+      Principal: apigateway.amazonaws.com
+
+  queryatablelambdapermission:
+    Type: "AWS::Lambda::Permission"
+    DependsOn: querytableAPIGateway
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref queryatablelambda
+      Principal: apigateway.amazonaws.com
+
+#--------API Gateway------------------------
+#-------hardcoded values of lambda fuctions in the methods---
+#----If lambda changes, please change the method URI----
+
+  querytableAPIGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: "query_a_table_API"
+      ApiKeySourceType: "HEADER"
+      Policy: !Sub "{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Effect\\\":\\\"Allow\\\",\\\"Principal\\\":\\\"*\\\",\\\"Action\\\":\\\"execute-api:Invoke\\\",\\\"Resource\\\":\\\"arn:aws:execute-api:\\/*\\\"},{\\\"Effect\\\":\\\"Deny\\\",\\\"Principal\\\":\\\"*\\\",\\\"Action\\\":\\\"execute-api:Invoke\\\",\\\"Resource\\\":\\\"arn:aws:execute-api:\\/*\\\",\\\"Condition\\\":{\\\"StringNotEquals\\\":{\\\"aws:SourceVpce\\\":\\\"${PrivateAPIGatewayEndpoint.Id}\\\"}}}]}"
+      EndpointConfiguration: 
+        Types: 
+          - "PRIVATE"
+        VpcEndpointIds: 
+          - !Ref PrivateAPIGatewayEndpoint
+
+  deleteGatewayResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      PathPart: "delete"
+      ParentId: !GetAtt querytableAPIGateway.RootResourceId
+
+  returnGatewayResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      PathPart: "return"
+      ParentId: !GetAtt querytableAPIGateway.RootResourceId
+
+  getqueryGatewayMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      ResourceId: !GetAtt querytableAPIGateway.RootResourceId
+      HttpMethod: "GET"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: false
+      RequestParameters: {}
+      MethodResponses: 
+        - 
+          ResponseModels: 
+            "application/json": "Empty"
+          StatusCode: "200"
+      Integration: 
+        CacheNamespace: !GetAtt querytableAPIGateway.RootResourceId
+        ContentHandling: "CONVERT_TO_TEXT"
+        IntegrationHttpMethod: "POST"
+        IntegrationResponses: 
+          - 
+            ResponseTemplates: {}
+            StatusCode: "200"
+        PassthroughBehavior: "WHEN_NO_MATCH"
+        TimeoutInMillis: 29000
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${queryatablelambda.Arn}/invocations"
+
+  deleteGatewayMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      ResourceId: !Ref deleteGatewayResource
+      HttpMethod: "DELETE"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: false
+      RequestParameters: {}
+      MethodResponses: 
+        - 
+          ResponseModels: 
+            "application/json": "Empty"
+          StatusCode: "200"
+      Integration: 
+        CacheNamespace: !Ref deleteGatewayResource
+        ContentHandling: "CONVERT_TO_TEXT"
+        IntegrationHttpMethod: "POST"
+        IntegrationResponses: 
+          - 
+            ResponseTemplates: {}
+            StatusCode: "200"
+        PassthroughBehavior: "WHEN_NO_MATCH"
+        TimeoutInMillis: 29000
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${deleteanitemlambda.Arn}/invocations"
+
+  getreturnGatewayMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      ResourceId: !Ref returnGatewayResource
+      HttpMethod: "GET"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: false
+      RequestParameters: {}
+      MethodResponses: 
+        - 
+          ResponseModels: 
+            "application/json": "Empty"
+          StatusCode: "200"
+      Integration: 
+        CacheNamespace: !Ref returnGatewayResource
+        ContentHandling: "CONVERT_TO_TEXT"
+        IntegrationHttpMethod: "POST"
+        IntegrationResponses: 
+          - 
+            ResponseTemplates: {}
+            StatusCode: "200"
+        PassthroughBehavior: "WHEN_NO_MATCH"
+        TimeoutInMillis: 29000
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${returnanitemlambda.Arn}/invocations"
+
+  querytableApiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId: !Ref querytableAPIGateway
+      StageName: "query"
+    DependsOn:
+       - getqueryGatewayMethod
+       - deleteGatewayMethod
+       - getreturnGatewayMethod
