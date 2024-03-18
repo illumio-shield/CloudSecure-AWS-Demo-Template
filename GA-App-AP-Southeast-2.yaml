@@ -58,6 +58,14 @@ Resources:
         - Key: "Name"
           Value: "Staging Subnet"
 
+#--------VPC peering------------------
+
+  vpcPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId: !Ref ACMEVPC1
+      PeerVpcId: !Ref ACMEVPC2
+
 #-------S3 Bucket and Flow Logs-------
 
   S3bucket:
@@ -266,7 +274,7 @@ Resources:
   ECommWeb1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -325,7 +333,7 @@ Resources:
   ECommProc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -370,7 +378,7 @@ Resources:
   ECommProc2:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -467,7 +475,7 @@ Resources:
   CRMEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -513,7 +521,7 @@ Resources:
   CRMEC2Web2:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -562,7 +570,7 @@ Resources:
   CRMEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -608,7 +616,7 @@ Resources:
   CRMEC2Proc2:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -652,7 +660,7 @@ Resources:
   CRMEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -696,7 +704,7 @@ Resources:
   FinanceEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -743,7 +751,7 @@ Resources:
   FinanceEC2Web2:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -791,7 +799,7 @@ Resources:
   FinanceEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -841,7 +849,7 @@ Resources:
   FinanceEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -890,7 +898,7 @@ Resources:
   FinanceEC2DB2:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -942,7 +950,7 @@ Resources:
   POSEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -992,7 +1000,7 @@ Resources:
   POSEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -1044,7 +1052,7 @@ Resources:
   POSEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
@@ -1159,7 +1167,7 @@ Resources:
   POSDevEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1211,7 +1219,7 @@ Resources:
   POSDevEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1263,7 +1271,7 @@ Resources:
   POSDevEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1315,7 +1323,7 @@ Resources:
   HRDevEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1365,7 +1373,7 @@ Resources:
   HRDevEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1415,7 +1423,7 @@ Resources:
   HRDevEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1465,7 +1473,7 @@ Resources:
   FinDevEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1514,7 +1522,7 @@ Resources:
   FinDevEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1564,7 +1572,7 @@ Resources:
   FinDevEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt DevSubnet.AvailabilityZone
@@ -1662,7 +1670,7 @@ Resources:
   CRMStagingEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -1712,7 +1720,7 @@ Resources:
   CRMStagingEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -1762,7 +1770,7 @@ Resources:
   CRMStagingEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -1813,7 +1821,7 @@ Resources:
   FinStagingEC2Web1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -1862,7 +1870,7 @@ Resources:
   FinStagingEC2Proc1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -1913,7 +1921,7 @@ Resources:
   FinStagingEC2DB1:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: "ami-0361bbf2b99f46c1d"
+      ImageId: "ami-0669b163befffbdfc"
       InstanceType: "t2.micro"
 #      KeyName: "freetrial"
       AvailabilityZone: !GetAtt StagingSubnet.AvailabilityZone
@@ -2006,11 +2014,11 @@ Resources:
 
 #-----------IAM Roles for EC2, Dynamo DB and Lambda--------------
 
-  EC2DynamoDBRolesoutheast:
+  EC2DynamoDBRoleCentral:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/"
-      RoleName: "EC2DynamoDBsoutheast"
+      RoleName: "EC2DynamoDBCentral"
       AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
       MaxSessionDuration: 3600
       ManagedPolicyArns: 
@@ -2022,15 +2030,15 @@ Resources:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Path: "/"
-      InstanceProfileName: !Ref EC2DynamoDBRolesoutheast
+      InstanceProfileName: !Ref EC2DynamoDBRoleCentral
       Roles: 
-        - !Ref EC2DynamoDBRolesoutheast
+        - !Ref EC2DynamoDBRoleCentral
 
-  LambdaDynamoDBRolesoutheast:
+  LambdaDynamoDBRoleCentral:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/"
-      RoleName: "LambdaDynamoDBsoutheast"
+      RoleName: "LambdaDynamoDBCentral"
       AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
       MaxSessionDuration: 3600
       ManagedPolicyArns: 
@@ -2048,7 +2056,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRolesoutheast.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
@@ -2083,7 +2091,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRolesoutheast.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
@@ -2117,7 +2125,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRolesoutheast.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
