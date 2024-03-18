@@ -58,6 +58,14 @@ Resources:
         - Key: "Name"
           Value: "Staging Subnet"
 
+#--------VPC peering------------------
+
+  vpcPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId: !Ref ACMEVPC1
+      PeerVpcId: !Ref ACMEVPC2
+
 #-------S3 Bucket and Flow Logs-------
 
   S3bucket:
@@ -2305,4 +2313,3 @@ Resources:
        - getqueryGatewayMethod
        - deleteGatewayMethod
        - getreturnGatewayMethod
-
