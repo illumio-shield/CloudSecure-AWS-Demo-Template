@@ -26,7 +26,14 @@ The AWS CloudFormation template included in this project creates various AWS res
 - **Internet Gateway**
 - **NAT Gateway**
 - **EC2 Instances**
+- **RDS Instances**
 - **S3 Bucket**
+- **VPC peering between ACME1 and ACME2**
+- **Lambda**
+- **Dynamo DB**
+- **API Gateways**
+- **VPC Endpoint**
+
 
 Additionally, it will automatically create flow logs from the VPC's to the S3 bucket. 
 
@@ -43,3 +50,5 @@ To tear down the demo simulation app, follow these steps:
 
 1. Log into the AWS CloudFormation Console and find the stack you created for the demo app
 2. Delete the stack
+3. Delete the S3 bucket created by the cloudformation template
+4. Delete the DynamoDB created by the Cloudformation template
