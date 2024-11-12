@@ -447,7 +447,7 @@ Resources:
       MaxAllocatedStorage: 1000
       DBParameterGroupName: "default.mysql8.0"
       OptionGroupName: "default:mysql-8-0"
-      CACertificateIdentifier: "rds-ca-2019"
+      CACertificateIdentifier: "rds-ca-rsa2048-g1"
       Tags:
       - Key: "Env"
         Value: "Prod"
