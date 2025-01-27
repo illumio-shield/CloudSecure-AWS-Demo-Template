@@ -10,14 +10,9 @@ Microsegmentation is a critical aspect of modern network security, and Illumio p
 
 To run this CFT template - 
 
-1. Click on the launch stack button below to open the AWS cloudformation console and create a new stack
-2. The template will take you to the cloudformation console and create the stack in selected region
-
-Region name | Region code | Launch
---- | --- | ---
-US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Illumio-Demo-Simulation&templateURL=https://cft-illumio-simulation.s3.amazonaws.com/GA-App-US-East-1.yaml) 
-EU (Frankfurt) |	eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?stackName=Illumio-Demo-Simulation&templateURL=https://cft-illumio-simulation.s3.amazonaws.com/GA-App-EU-Central-1.yaml)
-AP (Sydney) |	ap-southeast-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-2#/stacks/new?stackName=Illumio-Demo-Simulation&templateURL=https://cft-illumio-simulation.s3.amazonaws.com/GA-App-AP-Southeast-2.yaml)
+1. Go to Cloudformation on your AWS console. 
+2. Upload the template that best fits your region
+3. CFT template will usually take 5-10 mins to deploy
 
 The AWS CloudFormation template included in this project creates various AWS resources, including:
 
