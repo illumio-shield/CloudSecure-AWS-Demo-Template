@@ -429,7 +429,7 @@ Resources:
       BackupRetentionPeriod: 1
       AvailabilityZone: !GetAtt ProdSubnet.AvailabilityZone
       MultiAZ: false
-      EngineVersion: "8.0.34"
+      EngineVersion: "8.0.35"
       AutoMinorVersionUpgrade: true
       LicenseModel: "general-public-license"
       PubliclyAccessible: false
@@ -447,7 +447,7 @@ Resources:
       MaxAllocatedStorage: 1000
       DBParameterGroupName: "default.mysql8.0"
       OptionGroupName: "default:mysql-8-0"
-      CACertificateIdentifier: "rds-ca-2019"
+      CACertificateIdentifier: "rds-ca-rsa4096-g1"
       Tags:
       - Key: "Env"
         Value: "Prod"
@@ -457,6 +457,8 @@ Resources:
         Value: "Ecomm-Prod-DB"
       - Key: "Role"
         Value: "DB"
+    DependsOn:
+         - RDSDBSubnetGroup
 
   RDSDBSubnetGroup:
     Type: "AWS::RDS::DBSubnetGroup"
@@ -2012,11 +2014,11 @@ Resources:
 
 #-----------IAM Roles for EC2, Dynamo DB and Lambda--------------
 
-  EC2DynamoDBRole:
+  EC2DynamoDBRoleCentral:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/"
-      RoleName: "EC2DynamoDB"
+      RoleName: "EC2DynamoDBCentral"
       AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
       MaxSessionDuration: 3600
       ManagedPolicyArns: 
@@ -2028,15 +2030,15 @@ Resources:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Path: "/"
-      InstanceProfileName: !Ref EC2DynamoDBRole
+      InstanceProfileName: !Ref EC2DynamoDBRoleCentral
       Roles: 
-        - !Ref EC2DynamoDBRole
+        - !Ref EC2DynamoDBRoleCentral
 
-  LambdaDynamoDBRole:
+  LambdaDynamoDBRoleCentral:
     Type: "AWS::IAM::Role"
     Properties:
       Path: "/"
-      RoleName: "LambdaDynamoDB"
+      RoleName: "LambdaDynamoDBCentral"
       AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
       MaxSessionDuration: 3600
       ManagedPolicyArns: 
@@ -2054,7 +2056,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
@@ -2089,7 +2091,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
@@ -2123,7 +2125,7 @@ Resources:
       Architectures: 
         - "x86_64"
       MemorySize: 128
-      Role: !GetAtt LambdaDynamoDBRole.Arn
+      Role: !GetAtt LambdaDynamoDBRoleCentral.Arn
       Runtime: "python3.11"
       Timeout: 3
       TracingConfig: 
